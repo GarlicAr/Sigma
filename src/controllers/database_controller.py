@@ -1,29 +1,36 @@
-import mysql.connector
-from src.config.config import host, user, passwd, database
+import psycopg2
+from src.config.config import host, user, password, database
 
 
 def connect_to_database():
-    return mysql.connector.connect(
-        host=host,
-        user=user,
-        passwd=passwd,
-        database=database
-    )
+    try:
+        return psycopg2.connect(
+            host=host,
+            user=user,
+            password=password,
+            dbname=database
+        )
+    except Exception as e:
+        print("Database connection failed:", e)
+        # Optionally, re-raise the exception to halt the program if the database connection is essential
+        raise
+
 
 def setup_database():
     conn = connect_to_database()
     cursor = conn.cursor()
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            user_id VARCHAR(255) PRIMARY KEY,
-            xp INT,
-            level INT,
-            `rank` VARCHAR(255)
-        )
-    """)
+      CREATE TABLE IF NOT EXISTS users (
+          user_id VARCHAR(255) PRIMARY KEY,
+          xp INT,
+          level INT,
+          rank VARCHAR(255)
+      )
+  """)
     conn.commit()
     cursor.close()
     conn.close()
+
 
 def calculate_level(xp):
     # Define your logic to calculate level based on XP
@@ -41,6 +48,8 @@ def calculate_level(xp):
     else:
         level = 6  # KURWAMACH 💥
     return level
+
+
 def calculate_rank(xp):
     # Define your logic to calculate rank based on XP
     if xp <= 250:
@@ -57,24 +66,25 @@ def calculate_rank(xp):
         rank = "KURWAMACH"
     return rank
 
+
 async def update_xp(user_id, xp_gain):
     conn = connect_to_database()
     c = conn.cursor()
 
-    # Use %s as placeholders for MySQL
-    c.execute("SELECT xp, level, `rank` FROM users WHERE user_id = %s", (user_id,))
+    # Use %s as placeholders for PostgreSQL
+    c.execute("SELECT xp, level, rank FROM users WHERE user_id = %s", (user_id,))
     user = c.fetchone()
 
     if user:
         new_xp = user[0] + xp_gain
         new_level = calculate_level(new_xp)
         new_rank = calculate_rank(new_xp)
-        # Update placeholders to %s for MySQL
-        c.execute("UPDATE users SET xp = %s, level = %s, `rank` = %s WHERE user_id = %s",
+        # Update placeholders to %s for PostgreSQL
+        c.execute("UPDATE users SET xp = %s, level = %s, rank = %s WHERE user_id = %s",
                   (new_xp, new_level, new_rank, user_id))
     else:
         # Insert new user with placeholders as %s
-        c.execute("INSERT INTO users (user_id, xp, level, `rank`) VALUES (%s, %s, %s, %s)",
+        c.execute("INSERT INTO users (user_id, xp, level, rank) VALUES (%s, %s, %s,%s)",
                   (user_id, xp_gain, 1, "BOT"))
 
     conn.commit()

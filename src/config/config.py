@@ -18,5 +18,5 @@ SPAM_TIMEFRAME = timedelta(seconds=3)
 #database
 host=os.getenv("host")
 user=os.getenv("user")
-passwd=os.getenv("passwd")
+password=os.getenv("passwd")
 database=os.getenv("database")

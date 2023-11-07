@@ -35,9 +35,7 @@ async def send_message(message, user_message, is_private):
         print(e)
 
 
-
 def run_discord_bot():
-
     @bot.event
     async def on_ready():
         print(f'BOT {bot.user} is now running!')
@@ -56,12 +54,12 @@ def run_discord_bot():
                 for channel in guild.channels:
                     if channel.name == "general" and isinstance(channel, discord.TextChannel):
                         # Send a notification in the Discord channel
-                        await channel.send(f"Hi guys, RWEEEDS is currently LIVE on twitch!! \n https://www.twitch.tv/rweeeds \n @everyone")
+                        await channel.send(
+                            f"Hi guys, RWEEEDS is currently LIVE on twitch!! \n https://www.twitch.tv/rweeeds \n @everyone")
                         isLive = True
                         return
         elif stream == "OFFLINE" and isLive:
             isLive = False
-
 
     @bot.event
     async def on_member_join(member):
@@ -81,12 +79,11 @@ def run_discord_bot():
         user_id = str(ctx.author.id)
         conn = connect_to_database()
         c = conn.cursor()
-        c.execute("SELECT xp, `rank` FROM users WHERE user_id = %s", (user_id,))
+        # Update the query for PostgreSQL (using placeholders)
+        c.execute("SELECT xp, rank FROM users WHERE user_id = %s", (user_id,))
         result = c.fetchone()
-
         if result:
             xp, rank = result
-
             # Define XP thresholds for each rank
             thresholds = {
                 "Bot": 250,
@@ -98,41 +95,40 @@ def run_discord_bot():
             }
 
             # Match rank with corresponding emoji and calculate XP to next rank
-            if rank == "Bot":
-                emoji = ":robot:"
-                next_rank = "Alcoholic"
-                xp_to_next = thresholds[next_rank] - xp
-            elif rank == "Alcoholic":
-                emoji = ":beer:"
-                next_rank = "MethHead"
-                xp_to_next = thresholds[next_rank] - xp
-            elif rank == "MethHead":
-                emoji = ":pill:"
-                next_rank = "Rockstar"
-                xp_to_next = thresholds[next_rank] - xp
-            elif rank == "Rockstar":
-                emoji = ":guitar:"
-                next_rank = "Heisenberg"
-                xp_to_next = thresholds[next_rank] - xp
-            elif rank == "Heisenberg":
-                emoji = ":man_scientist:"
-                next_rank = "KURWAMACH"
-                xp_to_next = thresholds[next_rank] - xp
-            elif rank == "KURWAMACH":
-                emoji = ":boom:"
-                next_rank = "Max Rank"
-                xp_to_next = "N/A"  # No more ranks to achieve
+            emoji_dict = {
+                "Bot": ":robot:",
+                "Alcoholic": ":beer:",
+                "MethHead": ":pill:",
+                "Rockstar": ":guitar:",
+                "Heisenberg": ":man_scientist:",
+                "KURWAMACH": ":boom:",
+            }
 
-            # Construct and send the message
-            if xp_to_next == "N/A":
-                await ctx.send(
-                    f"{ctx.author.name}, You have {xp} XP. Your rank is {emoji} {rank} {emoji}. You have reached the maximum rank!")
-            else:
+            next_rank_dict = {
+                "Bot": "Alcoholic",
+                "Alcoholic": "MethHead",
+                "MethHead": "Rockstar",
+                "Rockstar": "Heisenberg",
+                "Heisenberg": "KURWAMACH",
+                "KURWAMACH": "Max Rank",
+            }
+
+            emoji = emoji_dict.get(rank, "")
+            next_rank = next_rank_dict.get(rank, "")
+
+            if rank != "KURWAMACH":
+                xp_to_next = thresholds[next_rank] - xp
                 await ctx.send(
                     f"{ctx.author.name}, You have {xp} XP. Your rank is {emoji} {rank} {emoji}. XP to next rank ({next_rank}): {xp_to_next}")
-
+            else:
+                # Max rank reached
+                await ctx.send(
+                    f"{ctx.author.name}, You have {xp} XP. Your rank is {emoji} {rank} {emoji}. You have reached the maximum rank!")
         else:
             await ctx.send("You have 0 XP. Pathetic....")
+
+        # Don't forget to close the connection
+        conn.close()
 
     @bot.command()
     @has_permissions(administrator=True)
@@ -157,7 +153,6 @@ def run_discord_bot():
         except:
             print("error")
 
-
     @bot.command()
     @has_permissions(administrator=True)
     async def end_giveaway(ctx, message_id: int):
@@ -177,8 +172,6 @@ def run_discord_bot():
         except:
             print("Giveaway Error")
 
-
-
     @bot.event
     async def on_reaction_add(reaction, user):
         """Handles reaction adds for giveaways."""
@@ -196,8 +189,6 @@ def run_discord_bot():
         if user.id not in reacted_users[reaction.message.id]:
             await update_xp(str(user.id), 5)
             reacted_users[reaction.message.id].add(user.id)
-
-
 
     @bot.event
     async def on_message(message):
@@ -239,12 +230,10 @@ def run_discord_bot():
             # No spam detected, process the message
             msgs.append(now)
 
-
         # Check for prohibited words
         if any(word in message.content.lower() for word in prohibited_words):
             await message.delete()
             await temp_mute_user(message.author, 600)
-
 
             # Check for URLs in the message
         if contains_url(message.content):
@@ -254,7 +243,6 @@ def run_discord_bot():
                 warning_message = "Sending links is not allowed in this channel."
                 await message.channel.send(f"{message.author.mention}, {warning_message}")
                 return
-
 
         if message.guild is not None:
             welcome_channel = discord.utils.get(message.guild.channels, name="welcome")
@@ -267,7 +255,6 @@ def run_discord_bot():
 
         if message.author == bot.user:
             return
-
 
         print(f"{username} said: {user_message}, in channel: {channel}")
 
@@ -305,18 +292,15 @@ def run_discord_bot():
 
         await update_xp(str(message.author.id), 1)
 
-
-
-        if message.guild is not None and not message.author.bot and not is_admin_or_moderator(message.author, message.guild):
+        if message.guild is not None and not message.author.bot and not is_admin_or_moderator(message.author,
+                                                                                              message.guild):
             # Get the user's current rank from the database
             conn = connect_to_database()
             c = conn.cursor()
             c.execute("SELECT `rank` FROM users WHERE user_id = %s", (str(user_id),))
             result = c.fetchone()
-
             if result:
                 rank = result[0]
-
                 # Define emojis using their Unicode characters
                 emojis = {
                     "Bot": "\U0001F916",  # Robot emoji
@@ -326,9 +310,7 @@ def run_discord_bot():
                     "Heisenberg": "\U0001F468\u200D\U0001F52C",  # Man scientist emoji
                     "KURWAMACH": "\U0001F4A5"  # Collision emoji
                 }
-
                 emoji = emojis.get(rank, "")  # Fallback to an empty string if rank not found
-
                 # Rename the user locally
                 new_nickname = f" {emoji} | {username.split('#')[0]}"
                 member = message.guild.get_member(user_id)
@@ -342,7 +324,6 @@ def run_discord_bot():
 
         await bot.process_commands(message)
 
-
         try:
             if message.content.lower() == ('.clearall'):
                 # Check if the user has the manage messages permission
@@ -353,7 +334,6 @@ def run_discord_bot():
                     await message.delete()
         except:
             print("error deleting messages")
-
 
     bot.run(Token)
 
