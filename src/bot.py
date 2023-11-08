@@ -297,7 +297,7 @@ def run_discord_bot():
             # Get the user's current rank from the database
             conn = connect_to_database()
             c = conn.cursor()
-            c.execute("SELECT `rank` FROM users WHERE user_id = %s", (str(user_id),))
+            c.execute("SELECT rank FROM users WHERE user_id = %s", (str(user_id),))
             result = c.fetchone()
             if result:
                 rank = result[0]
