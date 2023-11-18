@@ -9,8 +9,10 @@ from datetime import datetime
 from src.config import config
 from src.config.config import Token, SPAM_MESSAGE_LIMIT, SPAM_TIMEFRAME
 from src.controllers.database_controller import setup_database, connect_to_database, update_xp
-from src.functions.basic_functions import split_message, temp_mute_user, contains_url, is_admin_or_moderator
-from src.text.paragraphs import discord_rules, acceptance_message, help_message, commands_list, prohibited_words
+from src.functions.basic_functions import split_message, temp_mute_user, contains_url, is_admin_or_moderator, \
+    create_progress_bar
+from src.text.paragraphs import discord_rules, acceptance_message, help_message, commands_list, prohibited_words, \
+    white_list_message, white_list
 from src.controllers.twitch_controller import checkIfLive
 
 app = Flask(__name__)
@@ -54,10 +56,16 @@ def run_discord_bot():
                 for channel in guild.channels:
                     if channel.name == "general" and isinstance(channel, discord.TextChannel):
                         # Send a notification in the Discord channel
-                        await channel.send(
-                            f"Hi guys, RWEEEDS is currently LIVE on twitch!! \n https://www.twitch.tv/rweeeds \n @everyone")
-                        isLive = True
-                        return
+                        if stream.title and stream.game:
+                            await channel.send(
+                            f"Hi guys, RWEEEDS is currently LIVE on twitch!!\n TITLE: {stream.title} \n PLAYING GAME: {stream.game} \n https://www.twitch.tv/rweeeds \n @everyone")
+                            isLive = True
+                            return
+                        else:
+                            await channel.send(
+                                f"Hi guys, RWEEEDS is currently LIVE on twitch!!\n https://www.twitch.tv/rweeeds \n @everyone")
+                            isLive = True
+                            return
         elif stream == "OFFLINE" and isLive:
             isLive = False
 
@@ -75,6 +83,10 @@ def run_discord_bot():
             await channel.send(acceptance_message)
 
     @bot.command()
+    async def whitelist(ctx):
+        await ctx.send(white_list_message)
+
+    @bot.command()
     async def xp(ctx):
         user_id = str(ctx.author.id)
         conn = connect_to_database()
@@ -84,13 +96,14 @@ def run_discord_bot():
         result = c.fetchone()
         if result:
             xp, rank = result
+
             # Define XP thresholds for each rank
             thresholds = {
-                "Bot": 250,
-                "Alcoholic": 700,
-                "MethHead": 1200,
-                "Rockstar": 2000,
-                "Heisenberg": 4000,
+                "Bot": 0,
+                "Alcoholic": 250,
+                "MethHead": 700,
+                "Rockstar": 1200,
+                "Heisenberg": 2000,
                 # Assuming KURWAMACH is the highest rank with no upper XP limit
             }
 
@@ -116,20 +129,27 @@ def run_discord_bot():
             emoji = emoji_dict.get(rank, "")
             next_rank = next_rank_dict.get(rank, "")
 
+            # Create an embed
+            embed = discord.Embed(title=f"XP and Rank Information", color=discord.Color.blue())
+            embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar.url)
+            embed.add_field(name="Rank", value=f"{emoji} {rank} {emoji}", inline=True)
+            embed.add_field(name="XP", value=str(xp), inline=True)
+
+            # Calculate the progress bar
             if rank != "KURWAMACH":
                 xp_to_next = thresholds[next_rank] - xp
-                await ctx.send(
-                    f"{ctx.author.name}, You have {xp} XP. Your rank is {emoji} {rank} {emoji}. XP to next rank ({next_rank}): {xp_to_next}")
+                progress_bar = create_progress_bar(xp, thresholds[next_rank])
+                embed.add_field(name="XP to Next Rank", value=f"{xp_to_next} XP", inline=False)
+                embed.add_field(name="Next Rank", value=f" {emoji_dict[next_rank_dict[rank]]} {next_rank_dict[rank]} {emoji_dict[next_rank_dict[rank]]} ")
+                embed.add_field(name="Progress to Next Rank", value=progress_bar, inline=False)
             else:
-                # Max rank reached
-                await ctx.send(
-                    f"{ctx.author.name}, You have {xp} XP. Your rank is {emoji} {rank} {emoji}. You have reached the maximum rank!")
+                embed.add_field(name="Status", value="You have reached the maximum rank!", inline=False)
+
+            await ctx.author.send(embed=embed)
         else:
-            await ctx.send("You have 0 XP. Pathetic....")
+            await ctx.author.send("You have 0 XP. Pathetic....")
 
-        # Don't forget to close the connection
         conn.close()
-
     @bot.command()
     @has_permissions(administrator=True)
     async def start_giveaway(ctx, giveaway_name: str, image_url: str):
@@ -189,6 +209,9 @@ def run_discord_bot():
         if user.id not in reacted_users[reaction.message.id]:
             await update_xp(str(user.id), 5)
             reacted_users[reaction.message.id].add(user.id)
+
+
+
 
     @bot.event
     async def on_message(message):
@@ -253,8 +276,6 @@ def run_discord_bot():
                 if role:
                     await message.author.add_roles(role)
 
-        if message.author == bot.user:
-            return
 
         print(f"{username} said: {user_message}, in channel: {channel}")
 
@@ -291,6 +312,11 @@ def run_discord_bot():
             return
 
         await update_xp(str(message.author.id), 1)
+
+        if message.channel.name == 'memes':
+            # Check if the message contains an image or a link
+            if message.attachments or any(url in message.content for url in white_list):
+                await update_xp(str(message.author.id), 10)
 
         if message.guild is not None and not message.author.bot and not is_admin_or_moderator(message.author,
                                                                                               message.guild):

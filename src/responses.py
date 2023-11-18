@@ -11,7 +11,10 @@ def handle_response(message) -> str:
         try:
             _, user_number = p_message.split(" ")
             user_number = int(user_number)
-            return str(random.randint(1, user_number))
+            if user_number <= 1000000:
+                return str(random.randint(1, user_number))
+            else:
+                return "Number must be between 1 and 1'000'000 "
         except ValueError:
             return "Invalid number"
         except IndexError:

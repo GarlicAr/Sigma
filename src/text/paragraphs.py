@@ -27,7 +27,7 @@ discord_rules = """
 
 acceptance_message = "Please type  :sparkles: **I accept** :sparkles: to agree to the rules and gain full access to the server."
 
-aviable_commands = [ 'commands', 'help', 'roll [number]', "!xp" ]
+aviable_commands = [ 'commands', 'help', 'roll [number]', "!xp", '!whitelist' ]
 
 commands_list = '\n'.join([f"{i+1}. {command}" for i, command in enumerate(aviable_commands)])
 
@@ -56,6 +56,10 @@ All the aviable commands are: \n{commands_list}
 prohibited_words = ['niga', 'nigger', 'n1gga', 'niggaa', 'niggers', 'n!gga', 'n1gg@', 'nigga', 'nigers']
 
 warning_message = "Sending links is not allowed in this channel."
+
+white_list = ['tenor.com', 'giphy.com', 'tiktok.com', 'youtube.com', 'twitch.tv']
+
+white_list_message = 'Allowed media providers are: \n'+'\n'.join([f"{i+1}. {command}" for i, command in enumerate(white_list)])
 
 rankings = """
 

@@ -28,19 +28,25 @@ def split_message(message, length=2000):
 
 def contains_url(message):
     url_regex = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*(),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
-    gif_providers = ['tenor.com', 'giphy.com']  # List of allowed GIF providers
+    whitelist = ['tenor.com', 'giphy.com', 'tiktok.com', 'youtube.be', 'youtube.com', 'twitch.tv']  # List of allowed GIF providers
 
     urls = re.findall(url_regex, message)
     for url in urls:
-        if not any(gif_provider in url for gif_provider in gif_providers):
-            return True  # Return True if there's a URL that's not from allowed GIF providers
-    return False  # Return False if all URLs are from allowed GIF providers or if there are no URLs
+        if not any(gif_provider in url for gif_provider in whitelist):
+            return True  # Return True if there's a URL that's not in whitelist
+    return False  # Return False if all URLs are from whitelist
 
 def is_admin_or_moderator(user, guild):
     if user == guild.owner:  # Check if the user is the server owner
         return True
     return any(role.name in [admin_role_name, moderator_role_name] for role in user.roles)
 
+def create_progress_bar(current, total):
+    # Simple text-based progress bar
+    bar_length = 20
+    proportion = current / total
+    progress = int(proportion * bar_length)
+    return "🟩" * progress + "⬛" * (bar_length - progress)
 
 async def temp_mute_user(member, duration=20):
     global user_roles

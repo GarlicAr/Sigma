@@ -52,15 +52,15 @@ def calculate_level(xp):
 
 def calculate_rank(xp):
     # Define your logic to calculate rank based on XP
-    if xp <= 250:
+    if xp < 250:
         rank = "Bot"
-    elif xp <= 700:
+    elif xp < 700:
         rank = "Alcoholic"
-    elif xp <= 1200:
+    elif xp < 1200:
         rank = "MethHead"
-    elif xp <= 2000:
+    elif xp < 2000:
         rank = "Rockstar"
-    elif xp <= 4000:
+    elif xp < 4000:
         rank = "Heisenberg"
     else:
         rank = "KURWAMACH"
