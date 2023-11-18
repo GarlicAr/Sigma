@@ -4,6 +4,11 @@ import os
 
 load_dotenv()
 
+#REDDIT HEADER
+reddit_header_for_videos = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
+}
+
 Invite_link = 'https://discord.com/api/oauth2/authorize?client_id=1171020454283190335&permissions=2194124830838&scope=bot'
 #Tokens
 Token = os.getenv('Token')

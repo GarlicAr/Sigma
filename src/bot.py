@@ -1,3 +1,4 @@
+import os
 import random
 import discord
 from discord.ext import commands, tasks
@@ -9,6 +10,7 @@ from datetime import datetime
 from src.config import config
 from src.config.config import Token, SPAM_MESSAGE_LIMIT, SPAM_TIMEFRAME
 from src.controllers.database_controller import setup_database, connect_to_database, update_xp
+from src.controllers.reddit_controller import reddit_video
 from src.functions.basic_functions import split_message, temp_mute_user, contains_url, is_admin_or_moderator
 from src.text.paragraphs import discord_rules, acceptance_message, help_message, commands_list, prohibited_words
 from src.controllers.twitch_controller import checkIfLive
@@ -60,6 +62,24 @@ def run_discord_bot():
                         return
         elif stream == "OFFLINE" and isLive:
             isLive = False
+
+    #REDDIT BOT
+    @bot.command()
+    async def reddit(ctx, link: str):
+        try:
+            output_filename = reddit_video(link)
+
+            with open(output_filename, 'rb') as file:
+                await ctx.send(file=discord.File(file, output_filename))
+
+            # Delete the temporary video file after uploading
+            os.remove(output_filename)
+
+            # Optionally, delete the original command message
+            await ctx.message.delete()
+
+        except Exception as e:
+            await ctx.send(f"Error processing video: {e}")
 
     @bot.event
     async def on_member_join(member):
